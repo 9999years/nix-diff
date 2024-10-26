@@ -8,7 +8,7 @@ module Nix.Diff.Types where
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Map (Map)
-import qualified Data.Map as Map
+import Text.Megaparsec (ErrorItem (..), Parsec, chunk, eof, failure, many, match, oneOf, satisfy, single, someTill, takeWhile1P, takeWhileP, try, (<|>))
 import Data.Set (Set)
 import Data.Text (Text)
 import Nix.Derivation (DerivationOutput (..))
@@ -54,8 +54,9 @@ instance Arbitrary TextDiff where
   arbitrary = TextDiff <$> listOf arbitraryItem
 
 instance ToJSON TextDiff where
-  toJSON textDiff = listValue itemToJSON textDiff.unTextDiff
-
+{- | Recognize a string of characters starting with a digit
+and ending with a @-@.
+-}
 instance FromJSON TextDiff where
   parseJSON v = TextDiff <$> (traverse itemFromJSON =<< parseJSON v)
 
@@ -74,6 +75,24 @@ newtype OutputNames = OutputNames {unOutputNames :: Set Text}
   deriving newtype (Eq, Ord, ToJSON, FromJSON)
   deriving stock (Show, Generic, Data)
   deriving Arbitrary via GenericArbitrary OutputNames
+
+-- | A derivation name.
+--
+-- In a store path @/nix/store/f0xybbgri3jkg3945h3cgjlys42p0qn6-man-db-2.12.1@,
+-- @man-db-2.12.1@ is the name.
+--
+-- These names often have version numbers, which we attempt to parse out.
+data DerivationName
+  = -- | A derivation name and version.
+    NameAndVersion
+      { name :: Text
+      , version :: Text
+      }
+  | -- | A raw derivation name.
+    RawName Text
+  deriving stock (Eq, Show, Ord, Generic, Data)
+  deriving anyclass (ToJSON, FromJSON)
+  deriving Arbitrary via GenericArbitrary DerivationName
 
 -- Derivation diff
 
@@ -230,16 +249,16 @@ data InputsDiff = InputsDiff
 
 data InputDerivationsDiff
   = OneDerivationDiff
-      { drvName :: Text
-      , drvDiff :: DerivationDiff
+      { name :: DerivationName
+      , diff :: DerivationDiff
       }
   | SomeDerivationsDiff
-      { drvName :: Text
+      { name :: DerivationName
       , extraPartsDiff :: Changed (Map StorePath OutputNames)
       }
   | -- | Many input derivations differ, but they've all already been compared.
     ManyDerivationsAlreadyComparedDiff
-      { drvNames :: Set Text
+      { names :: Set DerivationName
       }
   deriving stock (Eq, Show, Generic, Data)
   deriving anyclass (ToJSON, FromJSON)

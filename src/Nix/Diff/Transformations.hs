@@ -89,15 +89,15 @@ foldManyInputDerivationsAlreadyCompared dd = case dd of
         helper [] [] = []
         helper names [] =
           [ManyDerivationsAlreadyComparedDiff
-            { drvNames = Set.fromList names
+            { names = Set.fromList names
             }]
         helper names (input:inputs) =
           case input of
             OneDerivationDiff
-              { drvName
-              , drvDiff = AlreadyCompared
+              { name
+              , diff = AlreadyCompared
               } -> helper
-                    (drvName:names)
+                    (name:names)
                     inputs
             OneDerivationDiff{} -> input : helper names inputs
             SomeDerivationsDiff{} -> input : helper names inputs

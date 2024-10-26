@@ -43,6 +43,7 @@ library
 
   exposed-modules:
     Nix.Diff
+    Nix.Diff.ParseName
     Nix.Diff.Store
     Nix.Diff.Types
     Nix.Diff.Transformations
@@ -66,6 +67,8 @@ library
                      , quickcheck-instances                < 3.29
                      , generic-arbitrary                   < 1.1
                      , uniplate                            < 1.17
+                     , megaparsec                          < 9.7
+                     , regex-posix
 
 executable nix-diff
   import: language
